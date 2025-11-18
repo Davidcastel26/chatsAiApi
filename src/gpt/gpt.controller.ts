@@ -22,22 +22,27 @@ export class GptController {
     @Body() prosConsDiscusserDto: ProsConsDiscusserDto,
     @Res() res: Response,
   ) {
-    res.setHeader('Content-Type', 'application/x-ndjson; charset=utf-8');
-    res.setHeader('Transfer-Encoding', 'chunked');
-    res.status(HttpStatus.OK);
+    // res.setHeader('Content-Type', 'application/x-ndjson; charset=utf-8');
+    // res.setHeader('Transfer-Encoding', 'chunked');
 
     const stream =
       await this.gptService.prosConsDiscusserStream(prosConsDiscusserDto);
 
+    // res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Cache-Control', 'no-cache');
+    // res.setHeader('Connection', 'keep-alive');
     res.status(HttpStatus.OK);
 
-    for await (const chunk of stream) {
-      const piece = chunk.choices[0].delta.content || '';
-      // console.log(piece);
-      res.write(piece);
+    for await (const event of stream) {
+      if (event.type === 'response.output_text.delta') {
+        const piece = event.delta.toString() || '';
+        console.log(piece);
+        // res.write(`${event.delta}`);
+        res.write(piece);
+      }
     }
-
+    // res.write('event: done\ndata: {}\n\n');
     res.end();
   }
 }

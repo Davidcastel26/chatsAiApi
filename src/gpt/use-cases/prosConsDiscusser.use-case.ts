@@ -25,7 +25,16 @@ export const prosConsDiscusserUseCase = async (
     max_output_tokens: 300,
   });
 
-  console.log(response.output[0]);
+  const first = response.output[0];
 
-  return response.output[0];
+  if (first?.type === 'message') {
+    const firstBlock = first.content[0];
+
+    if (firstBlock?.type === 'output_text') {
+      console.log(firstBlock.text);
+      return firstBlock;
+    }
+  }
+
+  // return response.output[0];
 };
