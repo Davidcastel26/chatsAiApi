@@ -33,18 +33,14 @@ export const textToAudioUseCase = async (
   fs.mkdirSync(folderPath, { recursive: true });
 
   const mp3 = await openai.audio.speech.create({
-    model: 'gpt-audio-mini',
+    model: 'gpt-4o-mini-tts',
     input: prompt,
     voice: selectedVoice,
     response_format: 'mp3',
   });
 
-  console.log(mp3, speechFile);
+  const buffer = Buffer.from(await mp3.arrayBuffer());
+  fs.writeFileSync(speechFile, buffer);
 
-  return {
-    prompt: prompt,
-    voice: selectedVoice,
-  };
+  return speechFile;
 };
-
-//   model: 'gpt-4o-mini',
