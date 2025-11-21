@@ -17,6 +17,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { GptService } from './gpt.service';
 import {
   AudioToTextDto,
+  ImageGenerationDto,
   OrthograpyhDto,
   ProsConsDiscusserDto,
   TextToAudioDto,
@@ -127,5 +128,18 @@ export class GptController {
     // console.log({ file: file });
     // console.log({ audioToTextDto });
     return this.gptService.audioToText(file, audioToTextDto);
+  }
+
+  @Post('image-generation')
+  async imageGenerationHandler(@Body() imageGenerationDto: ImageGenerationDto) {
+    return await this.gptService.imageGeneration(imageGenerationDto);
+  }
+
+  @Get('image-generation/:fileName')
+  imageGetHandler(@Res() res: Response, @Param('fileName') fileName: string) {
+    const filePath = this.gptService.getImageGenerated(fileName);
+
+    res.status(HttpStatus.OK);
+    res.sendFile(filePath);
   }
 }
