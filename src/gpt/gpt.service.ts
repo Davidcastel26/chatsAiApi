@@ -1,3 +1,4 @@
+import { ImageVariationDto } from './dtos/imageVariation.dto';
 import { ImageGenerationDto } from './dtos/imageGeneration.dto';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -9,6 +10,7 @@ import { OrthograpyhDto } from './dtos/orthography.dto';
 import {
   AudioToTextUseCase,
   imageGenerationUseCase,
+  imageVariationUseCase,
   orthographyUseCase,
   prosConsDiscusserStreamUseCase,
   prosConsDiscusserUseCase,
@@ -95,5 +97,9 @@ export class GptService {
     console.log({ filePath });
 
     return filePath;
+  }
+
+  async imageVariation({ baseImage }: ImageVariationDto) {
+    return imageVariationUseCase(this.openai, { baseImage });
   }
 }

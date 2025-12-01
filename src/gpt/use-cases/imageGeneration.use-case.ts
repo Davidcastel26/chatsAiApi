@@ -1,5 +1,11 @@
+import * as fs from 'fs';
+
 import OpenAI from 'openai';
-import { downloadBase64ImageFromOpenAi } from 'src/helpers';
+import {
+  downloadBase64ImageAsPng,
+  downloadBase64ImageFromOpenAi,
+  downloadImageAsPng,
+} from 'src/helpers';
 
 interface Options {
   prompt?: string;
@@ -42,18 +48,51 @@ export const imageGenerationUseCase = async (
       throw new Error('Image base64 result is missing');
     }
 
-    const newImage = await downloadBase64ImageFromOpenAi(base64Image);
+    const fileName = await downloadBase64ImageFromOpenAi(base64Image);
+    const url = `${process.env.SERVER_URL}/gpt/image-generation/${fileName}`;
+
+    console.log('file name with the URL ---------', url);
+
+    console.log(resp);
 
     return {
-      url: newImage,
+      url: url,
+      id: resp.output[0].id,
+      revised_prompt: resp.prompt,
+      // revised_prompt: resp.output[0].id,
+      type: resp.output[0].type,
+      tokens: resp.usage?.total_tokens,
     };
   }
 
-  const resp = await openai.responses.create({
-    model: 'gpt-4.1-mini',
-    input: prompt,
-    tools: [{ type: 'image_generation' }],
+  const pngImagePath = await downloadImageAsPng(originalImage, true);
+  const maskPath = await downloadBase64ImageAsPng(maskImage, true);
+
+  const resp = await openai.images.edit({
+    model: 'dall-e-2',
+    prompt,
+    image: fs.createReadStream(pngImagePath),
+    mask: fs.createReadStream(maskPath),
+    n: 1,
+    size: '1024x1024',
+    response_format: 'b64_json', // solicitamos BASE64 directamente
   });
 
-  return resp;
+  if (!resp.data?.length) {
+    throw new Error('DALL·E-2 did not return edited image');
+  }
+
+  const editedBase64 = resp.data[0].b64_json;
+
+  // Leemos original y mask como base64 también
+  const originalBase64 = fs.readFileSync(pngImagePath, 'base64');
+  const maskBase64 = fs.readFileSync(maskPath, 'base64');
+
+  console.log({ resp: resp });
+
+  return {
+    originalBase64,
+    maskBase64,
+    editedBase64,
+  };
 };
