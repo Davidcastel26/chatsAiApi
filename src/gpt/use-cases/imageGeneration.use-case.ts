@@ -51,7 +51,7 @@ export const imageGenerationUseCase = async (
     const fileName = await downloadBase64ImageFromOpenAi(base64Image);
     const url = `${process.env.SERVER_URL}/gpt/image-generation/${fileName}`;
 
-    console.log('file name with the URL ---------', url);
+    // console.log('file name with the URL ---------', url);
 
     console.log(resp);
 

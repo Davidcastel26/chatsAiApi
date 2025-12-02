@@ -144,8 +144,13 @@ export class GptController {
     res.sendFile(filePath);
   }
 
-  @Post('image-variation')
+  @Post('image-variation/v1')
   async imageVariationHandler(@Body() imageVariationDto: ImageVariationDto) {
     return await this.gptService.imageVariation(imageVariationDto);
+  }
+
+  @Post('image-variation/v2')
+  async imageVariationHQHandler(@Body() imageVariationDto: ImageVariationDto) {
+    return await this.gptService.imageVariationHQ(imageVariationDto);
   }
 }

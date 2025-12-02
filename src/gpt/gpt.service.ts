@@ -10,6 +10,7 @@ import { OrthograpyhDto } from './dtos/orthography.dto';
 import {
   AudioToTextUseCase,
   imageGenerationUseCase,
+  imageVariationHQUseCase,
   imageVariationUseCase,
   orthographyUseCase,
   prosConsDiscusserStreamUseCase,
@@ -101,5 +102,9 @@ export class GptService {
 
   async imageVariation({ baseImage }: ImageVariationDto) {
     return imageVariationUseCase(this.openai, { baseImage });
+  }
+
+  async imageVariationHQ({ baseImage }: ImageVariationDto) {
+    return imageVariationHQUseCase(this.openai, { baseImage });
   }
 }
