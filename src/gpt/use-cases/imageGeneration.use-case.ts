@@ -2,7 +2,7 @@ import * as fs from 'fs';
 
 import OpenAI from 'openai';
 import {
-  downloadBase64ImageAsPng,
+  convertCanvasMaskToDalleMask,
   downloadBase64ImageFromOpenAi,
   downloadImageAsPng,
 } from 'src/helpers';
@@ -27,7 +27,7 @@ export const imageGenerationUseCase = async (
     const resp = await openai.responses.create({
       model: 'gpt-4.1-mini',
       input: prompt,
-      tools: [{ type: 'image_generation' }],
+      tools: [{ type: 'image_generation', size: '1024x1024', quality: 'high' }],
     });
 
     if (!resp.output) {
@@ -51,22 +51,26 @@ export const imageGenerationUseCase = async (
     const fileName = await downloadBase64ImageFromOpenAi(base64Image);
     const url = `${process.env.SERVER_URL}/gpt/image-generation/${fileName}`;
 
-    // console.log('file name with the URL ---------', url);
-
-    console.log(resp);
-
     return {
       url: url,
       id: resp.output[0].id,
       revised_prompt: resp.prompt,
-      // revised_prompt: resp.output[0].id,
       type: resp.output[0].type,
       tokens: resp.usage?.total_tokens,
     };
   }
 
   const pngImagePath = await downloadImageAsPng(originalImage, true);
-  const maskPath = await downloadBase64ImageAsPng(maskImage, true);
+  const maskPath = await convertCanvasMaskToDalleMask(maskImage, true);
+  // const maskPath = await downloadBase64ImageAsPng(maskImage, true);
+  console.log('-------');
+  console.log('-------');
+  console.log('-------');
+  console.log({ pngImagePath, maskPath });
+  console.log('-------');
+  console.log('-------');
+  console.log('-------');
+  console.log('-------');
 
   const resp = await openai.images.edit({
     model: 'dall-e-2',
@@ -75,7 +79,11 @@ export const imageGenerationUseCase = async (
     mask: fs.createReadStream(maskPath),
     n: 1,
     size: '1024x1024',
-    response_format: 'b64_json', // solicitamos BASE64 directamente
+    response_format: 'b64_json',
+  });
+
+  console.log({
+    'THIS IS RESP': resp,
   });
 
   if (!resp.data?.length) {
@@ -87,8 +95,6 @@ export const imageGenerationUseCase = async (
   // Leemos original y mask como base64 también
   const originalBase64 = fs.readFileSync(pngImagePath, 'base64');
   const maskBase64 = fs.readFileSync(maskPath, 'base64');
-
-  console.log({ resp: resp });
 
   return {
     originalBase64,

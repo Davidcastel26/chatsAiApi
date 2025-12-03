@@ -95,7 +95,6 @@ export class GptService {
     const exists = fs.existsSync(filePath);
 
     if (!exists) throw new NotFoundException('File not found');
-    console.log({ filePath });
 
     return filePath;
   }

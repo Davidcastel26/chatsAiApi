@@ -4,8 +4,6 @@ import sharp from 'sharp';
 
 import { InternalServerErrorException } from '@nestjs/common';
 
-// const sharp = require('sharp');
-
 export const downloadImageAsPng = async (
   url: string,
   fullPath: boolean = false,
@@ -21,10 +19,8 @@ export const downloadImageAsPng = async (
   const imageNamePng = `${new Date().getTime()}.png`;
   const buffer = Buffer.from(await response.arrayBuffer());
 
-  //   fs.writeFileSync(`${folderPath}/${imageNamePng}`, buffer);
   const completePath = path.join(folderPath, imageNamePng);
 
-  //   await sharp(buffer).png().ensureAlpha().toFile(completePath);
   await sharp(buffer).png().ensureAlpha().toFile(completePath);
 
   return fullPath ? completePath : imageNamePng;
@@ -38,7 +34,6 @@ export const downloadBase64ImageFromOpenAi = async (
     throw new Error('Empty base64 image');
   }
 
-  // Si viniera con encabezado tipo "data:image/png;base64,..."
   const pureBase64 = base64Image.includes(';base64,')
     ? base64Image.split(';base64,').pop()!
     : base64Image;
@@ -62,7 +57,6 @@ export const downloadBase64ImageAsPng = async (
 ) => {
   // Remover encabezado
   base64Image = base64Image.split(';base64,').pop()!;
-  //   const imageBuffer = Buffer.from(base64Image, 'base64');
   const imageBuffer = Buffer.from(base64Image, 'base64');
 
   const folderPath = path.resolve('./', './generated/images/');
@@ -75,4 +69,31 @@ export const downloadBase64ImageAsPng = async (
   await sharp(imageBuffer).png().ensureAlpha().toFile(completePath);
 
   return fullPath ? completePath : imageNamePng;
+};
+
+export const convertCanvasMaskToDalleMask = async (
+  base64Image: string,
+  fullPath: boolean = false,
+) => {
+  // Remove header
+  const raw = base64Image.replace(/^data:image\/\w+;base64,/, '');
+  const buffer = Buffer.from(raw, 'base64');
+
+  const folderPath = path.resolve('./', './generated/images/');
+  fs.mkdirSync(folderPath, { recursive: true });
+
+  const maskName = `${Date.now()}-mask.png`;
+  const maskPath = path.join(folderPath, maskName);
+
+  // Convert transparent mask → black/white
+  // Transparent pixels → BLACK (editable)
+  // Opaque pixels → WHITE (keep)
+  await sharp(buffer)
+    .ensureAlpha()
+    .removeAlpha() // removes transparency
+    .threshold(1) // convert to b/w mask
+    .toFormat('png')
+    .toFile(maskPath);
+
+  return fullPath ? maskPath : maskName;
 };
