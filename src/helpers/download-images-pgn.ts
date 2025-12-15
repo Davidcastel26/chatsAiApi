@@ -71,28 +71,102 @@ export const downloadBase64ImageAsPng = async (
   return fullPath ? completePath : imageNamePng;
 };
 
-export const convertCanvasMaskToDalleMask = async (
-  base64Image: string,
-  fullPath: boolean = false,
+// export const convertCanvasMaskToDalleMask = async (
+//   base64Image: string,
+//   fullPath: boolean = false,
+// ) => {
+//   const raw = base64Image.replace(/^data:image\/\w+;base64,/, '');
+//   const buffer = Buffer.from(raw, 'base64');
+
+//   const folderPath = path.resolve('./', './generated/images/');
+//   fs.mkdirSync(folderPath, { recursive: true });
+
+//   const maskName = `${Date.now()}-mask.png`;
+//   const maskPath = path.join(folderPath, maskName);
+
+// Convertimos la imagen a: blanco donde hay imagen, transparente donde clearRect borró
+// await sharp(buffer)
+//   .ensureAlpha()
+//   .toColourspace('b-w')
+//   .threshold(1)
+//   .toFormat('png')
+//   .toFile(maskPath);
+//   await sharp(buffer)
+//     .resize(1024, 1024) // <--- tamaño requerido por OpenAI
+//     .ensureAlpha() // asegurar canal alfa
+//     .png({ compressionLevel: 0 })
+//     .removeAlpha() // eliminar transparencia
+//     .threshold(1) // convierte todo en B/W puro
+//     .toFile(maskPath);
+
+//   return fullPath ? maskPath : maskName;
+// };
+
+export const downloadImageAsPngForMaskProcess = async (
+  url: string,
+  fullPath = false,
 ) => {
-  // Remove header
+  const response = await fetch(url);
+  if (!response.ok)
+    throw new InternalServerErrorException('Download image was not possible');
+
+  const buffer = Buffer.from(await response.arrayBuffer());
+
+  const folderPath = path.resolve('./generated/images');
+  fs.mkdirSync(folderPath, { recursive: true });
+
+  const imageName = `${Date.now()}.png`;
+  const completePath = path.join(folderPath, imageName);
+
+  await sharp(buffer)
+    .resize(1024, 1024, { fit: 'cover' })
+    .png({ compressionLevel: 0 })
+    .ensureAlpha()
+    .toFile(completePath);
+
+  return fullPath ? completePath : imageName;
+};
+
+export const saveMaskBase64ToPng = async (
+  base64Image: string,
+  fullPath = false,
+) => {
   const raw = base64Image.replace(/^data:image\/\w+;base64,/, '');
   const buffer = Buffer.from(raw, 'base64');
 
-  const folderPath = path.resolve('./', './generated/images/');
+  const folderPath = path.resolve('./generated/images/');
   fs.mkdirSync(folderPath, { recursive: true });
 
   const maskName = `${Date.now()}-mask.png`;
   const maskPath = path.join(folderPath, maskName);
 
-  // Convert transparent mask → black/white
-  // Transparent pixels → BLACK (editable)
-  // Opaque pixels → WHITE (keep)
   await sharp(buffer)
+    .resize(1024, 1024, { fit: 'fill' }) // 🔥 mismo tamaño que la image
+    .png({ compressionLevel: 0 })
+    .ensureAlpha() // 🔥 mantiene transparencia
+    .toFile(maskPath);
+
+  return fullPath ? maskPath : maskName;
+};
+
+export const convertCanvasMaskToDalleMask = async (
+  base64Image: string,
+  fullPath = false,
+) => {
+  const raw = base64Image.replace(/^data:image\/\w+;base64,/, '');
+  const buffer = Buffer.from(raw, 'base64');
+
+  const folderPath = path.resolve('./generated/images/');
+  fs.mkdirSync(folderPath, { recursive: true });
+
+  const maskName = `${Date.now()}-mask.png`;
+  const maskPath = path.join(folderPath, maskName);
+
+  // ✅ conserva alpha (transparencia) y fuerza PNG + resize
+  await sharp(buffer)
+    .resize(1024, 1024) // o 512, pero IGUAL que la image final
+    .png()
     .ensureAlpha()
-    .removeAlpha() // removes transparency
-    .threshold(1) // convert to b/w mask
-    .toFormat('png')
     .toFile(maskPath);
 
   return fullPath ? maskPath : maskName;

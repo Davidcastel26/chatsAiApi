@@ -1,10 +1,14 @@
 import * as fs from 'fs';
 
 import OpenAI from 'openai';
+import { toFile } from 'openai/uploads';
+
 import {
-  convertCanvasMaskToDalleMask,
+  // convertCanvasMaskToDalleMask,
   downloadBase64ImageFromOpenAi,
-  downloadImageAsPng,
+  // downloadImageAsPng,
+  downloadImageAsPngForMaskProcess,
+  saveMaskBase64ToPng,
 } from 'src/helpers';
 
 interface Options {
@@ -27,7 +31,7 @@ export const imageGenerationUseCase = async (
     const resp = await openai.responses.create({
       model: 'gpt-4.1-mini',
       input: prompt,
-      tools: [{ type: 'image_generation', size: '1024x1024', quality: 'high' }],
+      tools: [{ type: 'image_generation', size: '1024x1024', quality: 'low' }],
     });
 
     if (!resp.output) {
@@ -60,8 +64,12 @@ export const imageGenerationUseCase = async (
     };
   }
 
-  const pngImagePath = await downloadImageAsPng(originalImage, true);
-  const maskPath = await convertCanvasMaskToDalleMask(maskImage, true);
+  // const pngImagePath = await downloadImageAsPng(originalImage, true);
+  const pngImagePath = await downloadImageAsPngForMaskProcess(
+    originalImage,
+    true,
+  );
+  const maskPath = await saveMaskBase64ToPng(maskImage, true);
   // const maskPath = await downloadBase64ImageAsPng(maskImage, true);
   console.log('-------');
   console.log('-------');
@@ -72,11 +80,25 @@ export const imageGenerationUseCase = async (
   console.log('-------');
   console.log('-------');
 
+  const fileBuffer = fs.readFileSync(pngImagePath);
+  console.log('-------');
+  console.log('-------');
+  console.log('-------');
+  console.log('-------');
+  console.log(fileBuffer.slice(0, 8));
+  console.log('-------');
+  console.log('-------');
+  console.log('-------');
+  console.log('-------');
+
+  const imageBuffer = fs.readFileSync(pngImagePath);
+  const maskBuffer = fs.readFileSync(maskPath);
+
   const resp = await openai.images.edit({
     model: 'dall-e-2',
     prompt,
-    image: fs.createReadStream(pngImagePath),
-    mask: fs.createReadStream(maskPath),
+    image: await toFile(imageBuffer, 'image.png', { type: 'image/png' }),
+    mask: await toFile(maskBuffer, 'mask.png', { type: 'image/png' }),
     n: 1,
     size: '1024x1024',
     response_format: 'b64_json',
